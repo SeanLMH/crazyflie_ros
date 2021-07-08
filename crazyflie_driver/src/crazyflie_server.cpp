@@ -20,6 +20,7 @@
 #include "crazyflie_driver/Hover.h"
 #include "crazyflie_driver/Stop.h"
 #include "crazyflie_driver/Position.h"
+#include "crazyflie_driver/Motor.h"
 #include "crazyflie_driver/VelocityWorld.h"
 #include "crazyflie_driver/crtpPacket.h"
 #include "crazyflie_cpp/Crazyradio.h"
@@ -135,6 +136,7 @@ public:
     , m_subscribeCmdHover()
     , m_subscribeCmdStop()
     , m_subscribeCmdPosition()
+    , m_subscribeCmdMotor()
     , m_subscribeExternalPosition()
     , m_pubImu()
     , m_pubTemp()
@@ -245,6 +247,20 @@ void cmdStop(
       m_cf.sendStop();
       m_sentSetpoint = true;
       //ROS_INFO("set a stop setpoint");
+    }
+  }
+
+void cmdMotorSetpoint(
+    const crazyflie_driver::Motor::ConstPtr& msg)
+  {
+    if(!m_isEmergency){
+      uint16_t m1 = msg->m1;
+      uint16_t m2 = msg->m2;
+      uint16_t m3 = msg->m3;
+      uint16_t m4 = msg->m4;
+
+      m_cf.sendMotorSetpoint(m1, m2, m3, m4);
+      m_sentSetpoint = true;
     }
   }
 
@@ -402,7 +418,7 @@ void cmdPositionSetpoint(
     m_subscribeCmdHover = n.subscribe(m_tf_prefix + "/cmd_hover", 1, &CrazyflieROS::cmdHoverSetpoint, this);
     m_subscribeCmdStop = n.subscribe(m_tf_prefix + "/cmd_stop", 1, &CrazyflieROS::cmdStop, this);
     m_subscribeCmdPosition = n.subscribe(m_tf_prefix + "/cmd_position", 1, &CrazyflieROS::cmdPositionSetpoint, this);
-
+    m_subscribeCmdMotor = n.subscribe(m_tf_prefix + "/cmd_motor", 1, &CrazyflieROS::cmdMotorSetpoint, this );
 
     m_serviceSetGroupMask = n.advertiseService(m_tf_prefix + "/set_group_mask", &CrazyflieROS::setGroupMask, this);
     m_serviceTakeoff = n.advertiseService(m_tf_prefix + "/takeoff", &CrazyflieROS::takeoff, this);
@@ -878,6 +894,7 @@ private:
   ros::Subscriber m_subscribeCmdHover;
   ros::Subscriber m_subscribeCmdStop;
   ros::Subscriber m_subscribeCmdPosition;
+  ros::Subscriber m_subscribeCmdMotor;
   ros::Subscriber m_subscribeExternalPosition;
   ros::Subscriber m_subscribeExternalPose;
   ros::Subscriber m_subscribeCmdVelocityWorld;
